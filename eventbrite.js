@@ -12,12 +12,15 @@
 	// remove link to all events
 	$(".content .allevents-link").remove()
 
-	var ORGANIZER_ID = "11039589950",
+	var ORGANISERS = ["11039589950", "14298913619"],
+		N_ORGANISERS = ORGANISERS.length,
 		OAUTH_TOKEN = "Y74BUZSTL7H6QEI4BB72",
-		url = "https://www.eventbriteapi.com/v3/events/search/?token=" + OAUTH_TOKEN + "&organizer.id=" + ORGANIZER_ID + "&sort_by=date",
+		MAX_STRING_LEN = 512,
+
 		$main = $(".eventbrite-cal"),
 		$template = $main.find(".template"),
-		MAX_STRING_LEN = 512
+		
+		nOrganisersFinished = 0
 
 	$main.addClass("loading")
 
@@ -51,39 +54,53 @@
 		$new.appendTo($main)
 	}
 
-	jQuery.get(url, function getCallback (parsed) {
-		var events = parsed.events,
-			nEvents = events.length
+	function prettyDate (date) {
+		function format (num) {
+			return (num / 10).toFixed(1).replace(".", "")
+		}
 
-		function prettyDate (date) {
-			function format (num) {
-				return (num / 10).toFixed(1).replace(".", "")
+		var dd = format(date.getDate()),
+			mm = format(date.getMonth() + 1),
+			yyyy = date.getFullYear(),
+			HH = format(date.getHours()),
+			MM = format(date.getMinutes()),
+			output = dd + "/" + mm + "/" + yyyy + " " + HH + ":" + MM
+
+		return output
+	}
+
+	function getEventsFromOrganiser (organiser, callback) {
+		jQuery.get("https://www.eventbriteapi.com/v3/events/search/?token=" + OAUTH_TOKEN + "&organizer.id=" + organiser + "&sort_by=date", function getCallback (parsed) {
+			callback(parsed.events)
+		})
+	}
+
+	for (oragniserIndex = 0; oragniserIndex < N_ORGANISERS; oragniserIndex += 1) {
+		var organiser = ORGANISERS[oragniserIndex]
+
+		getEventsFromOrganiser(organiser, function (events) {
+			// add each event to the dom
+			for (var eventIndex = 0, nEvents = events.length; eventIndex < nEvents; eventIndex += 1) {
+				var event = events[eventIndex]
+				console.log(event)
+
+				genFromTemplateWithData({
+					"heading": event.name.text,
+					"paragraph": shortenString(event.description.text),
+					"url": event.url,
+					"date": prettyDate(new Date(event.start.utc)),
+					"free": event.is_free,
+					"image": "background-image: url(" + event.logo.url + ")",
+				})
 			}
 
-			var dd = format(date.getDate()),
-				mm = format(date.getMonth() + 1),
-				yyyy = date.getFullYear(),
-				HH = format(date.getHours()),
-				MM = format(date.getMinutes()),
-				output = dd + "/" + mm + "/" + yyyy + " " + HH + ":" + MM
+			// this counter is used for checking if evreything is finished
+			nOrganisersFinished += 1
 
-			return output
-		}
-
-		for (var eventIndex = 0; eventIndex < nEvents; eventIndex += 1) {
-			var event = events[eventIndex]
-			console.log(event)
-
-			genFromTemplateWithData({
-				"heading": event.name.text,
-				"paragraph": shortenString(event.description.text),
-				"url": event.url,
-				"date": prettyDate(new Date(event.start.utc)),
-				"free": event.is_free,
-				"image": "background-image: url(" + event.logo.url + ")",
-			})
-		}
-
-		$main.removeClass("loading")
-	})
+			if (nOrganisersFinished === N_ORGANISERS) {
+				// if everything is finished don't load
+				$main.removeClass("loading")
+			}
+		})
+	}
 }(window.jQuery))
