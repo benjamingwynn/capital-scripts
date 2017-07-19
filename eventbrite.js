@@ -19,7 +19,7 @@
 
 		$main = $(".eventbrite-cal"),
 		$template = $main.find(".template"),
-		
+
 		nOrganisersFinished = 0
 
 	$main.addClass("loading")
@@ -75,7 +75,7 @@
 		})
 	}
 
-	for (oragniserIndex = 0; oragniserIndex < N_ORGANISERS; oragniserIndex += 1) {
+	for (var oragniserIndex = 0; oragniserIndex < N_ORGANISERS; oragniserIndex += 1) {
 		var organiser = ORGANISERS[oragniserIndex]
 
 		getEventsFromOrganiser(organiser, function (events) {
